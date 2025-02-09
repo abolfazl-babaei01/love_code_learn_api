@@ -2,8 +2,21 @@ from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from accounts.models import User
 
+
 # Create your models here.
 
+
+class Category(models.Model):
+    name = models.CharField(max_length=155)
+    slug = models.SlugField(max_length=155, unique=True)
+
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = 'Category'
+        verbose_name_plural = 'Categories'
 
 class Course(models.Model):
     """
@@ -25,6 +38,10 @@ class Course(models.Model):
         published = ('published', 'Published')
         draft = ('draft', 'Draft')
         rejected = ('rejected', 'Rejected')
+
+
+    # Category
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='courses')
 
     # image
     thumbnail = models.ImageField(upload_to="courses/images/thumbnail/")
@@ -84,6 +101,7 @@ class CourseHeadlines(models.Model):
 
 def video_upload_path(instance, filename):
     return f"courses/videos/{instance.headline.headline_title}/{filename}"
+
 
 def attached_file_upload_path(instance, filename):
     return f"attached_files/{instance.video_title}/{filename}"

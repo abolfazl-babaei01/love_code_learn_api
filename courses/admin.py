@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Course, CourseSubDescription, CourseHeadlines, SeasonVideos
+from .models import Course, CourseSubDescription, CourseHeadlines, SeasonVideos, Category
 
 # Register your models here.
 
@@ -23,3 +23,7 @@ class CourseHeadlinesAdmin(admin.ModelAdmin):
     inlines = [SeasonVideosInline]
     list_filter = ['course']
     search_fields = ['headline_title', 'course__title']
+
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = ['name', 'slug']
