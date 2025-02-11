@@ -23,6 +23,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('accounts.urls', namespace='accounts')),
 
+    path('courses/', include('courses.urls', namespace='courses')),
+
 ]
 
 if settings.DEBUG:

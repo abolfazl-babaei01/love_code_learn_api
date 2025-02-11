@@ -1,7 +1,7 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from accounts.models import User
-
+from moviepy import VideoFileClip
 
 # Create your models here.
 
@@ -57,18 +57,38 @@ class Course(models.Model):
     rating = models.PositiveIntegerField(default=5, validators=[MinValueValidator(1), MaxValueValidator(5)])
 
     number_of_students = models.PositiveIntegerField(default=0)
+
+    # prices
     price = models.PositiveBigIntegerField(default=0)
     off = models.DecimalField(default=0, max_digits=5, decimal_places=2)
-    duration = models.CharField(max_length=100)
+    final_price = models.PositiveBigIntegerField(default=0)
+    # sum course time
+    duration = models.DecimalField(default=0, max_digits=6, decimal_places=2)
+
     status = models.CharField(max_length=11, choices=CourseStatus.choices, default=CourseStatus.in_progress)
     release_status = models.CharField(max_length=10, choices=CourseReleaseStatus.choices,
                                       default=CourseReleaseStatus.draft)
+    is_free = models.BooleanField(default=False)
     # date time
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f'{self.title} - {self.teacher}'
+
+
+    def save(self, *args, **kwargs):
+
+        if self.off == 0:
+            self.final_price = self.price
+
+        if self.final_price == 0:
+            self.is_free = True
+        else:
+            self.is_free = False
+        self.final_price = self.price - self.off
+
+        super().save(*args, **kwargs)
 
 
 class CourseSubDescription(models.Model):
@@ -85,10 +105,12 @@ class CourseHeadlines(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='headlines')
     headline_title = models.CharField(max_length=200)
     chapter_number = models.PositiveIntegerField()
+    duration = models.DecimalField(default=0, max_digits=6,  decimal_places=2)
     is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return self.headline_title
+
 
     class Meta:
         ordering = ['chapter_number']
@@ -113,6 +135,9 @@ class SeasonVideos(models.Model):
     video_file = models.FileField(upload_to=video_upload_path)
     description = models.TextField(null=True, blank=True)
     attached_file = models.FileField(upload_to=attached_file_upload_path, null=True, blank=True)
+    duration = models.DecimalField(default=0, max_digits=6, decimal_places=2)
+    is_free = models.BooleanField(default=False)
+
 
     def __str__(self):
         return f'{self.headline} - {self.video_title}'

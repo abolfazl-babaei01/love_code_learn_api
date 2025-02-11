@@ -1,6 +1,5 @@
 from django.contrib import admin
 from .models import Course, CourseSubDescription, CourseHeadlines, SeasonVideos, Category
-
 # Register your models here.
 
 class SubDescriptionInline(admin.StackedInline):
@@ -13,17 +12,16 @@ class CourseAdmin(admin.ModelAdmin):
     inlines = [SubDescriptionInline]
 
 
-class SeasonVideosInline(admin.StackedInline):
-    model = SeasonVideos
-    extra = 1
-
 @admin.register(CourseHeadlines)
 class CourseHeadlinesAdmin(admin.ModelAdmin):
     list_display = ['headline_title', 'course', 'chapter_number']
-    inlines = [SeasonVideosInline]
     list_filter = ['course']
     search_fields = ['headline_title', 'course__title']
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
     list_display = ['name', 'slug']
+
+@admin.register(SeasonVideos)
+class SeasonVideosAdmin(admin.ModelAdmin):
+    list_display = ['video_title', 'duration', 'is_free']

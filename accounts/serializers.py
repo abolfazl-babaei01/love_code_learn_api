@@ -136,6 +136,7 @@ class ChangePhoneNumberSerializer(BaseOtpVerificationSerializer):
         if User.objects.filter(phone_number=new_phone_number).exists():
             raise serializers.ValidationError({'Error': 'Phone number already exists'})
 
+        # set new phone number
         user.phone_number = new_phone_number
         user.save()
         self.otp_verification.delete()
