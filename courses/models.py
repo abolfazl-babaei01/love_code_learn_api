@@ -1,8 +1,7 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from accounts.models import User
-from moviepy import VideoFileClip
-
+from django.db.models import Sum
 # Create your models here.
 
 
@@ -17,6 +16,7 @@ class Category(models.Model):
     class Meta:
         verbose_name = 'Category'
         verbose_name_plural = 'Categories'
+
 
 class Course(models.Model):
     """
@@ -90,6 +90,16 @@ class Course(models.Model):
 
         super().save(*args, **kwargs)
 
+    def update_duration(self):
+        """
+        Updates the total duration of the course based on its videos.
+        """
+        total_duration = SeasonVideos.objects.filter(headline__course=self).aggregate(
+            total_duration=Sum('duration')
+        )['total_duration'] or 0
+        self.duration = total_duration
+        self.save()
+
 
 class CourseSubDescription(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='sub_descriptions')
@@ -112,6 +122,12 @@ class CourseHeadlines(models.Model):
         return self.headline_title
 
 
+    def update_duration(self):
+        total_duration = SeasonVideos.objects.filter(headline=self).aggregate(
+            total_duration=Sum('duration'))['total_duration'] or 0
+        self.duration = total_duration
+        self.save()
+
     class Meta:
         ordering = ['chapter_number']
         constraints = [
@@ -122,11 +138,13 @@ class CourseHeadlines(models.Model):
 
 
 def video_upload_path(instance, filename):
-    return f"courses/videos/{instance.headline.headline_title}/{filename}"
+    path = instance.headline.headline_title.replace(' ', '_')
+    return f"courses/videos/{path}/{filename}"
 
 
 def attached_file_upload_path(instance, filename):
-    return f"attached_files/{instance.video_title}/{filename}"
+    path = instance.video_title.replace(' ', '_')
+    return f"attached_files/{path}/{filename}"
 
 
 class SeasonVideos(models.Model):
@@ -137,6 +155,31 @@ class SeasonVideos(models.Model):
     attached_file = models.FileField(upload_to=attached_file_upload_path, null=True, blank=True)
     duration = models.DecimalField(default=0, max_digits=6, decimal_places=2)
     is_free = models.BooleanField(default=False)
+
+
+    def save(self, *args, **kwargs):
+        """
+        Update the course duration when a new video is added or modified.
+        """
+        super().save(*args, **kwargs)
+        self.headline.update_duration()
+        self.headline.course.update_duration()
+
+    def delete(self, *args, **kwargs):
+        """
+        Update the course duration when a video is deleted.
+        """
+        # ذخیره اطلاعات قبل از حذف
+        headline = self.headline
+        course = headline.course
+        headline.update_duration()
+        course.update_duration()
+        # حذف شیء
+        super().delete(*args, **kwargs)
+
+        # به‌روزرسانی مدت زمان بعد از حذف
+
+
 
 
     def __str__(self):
