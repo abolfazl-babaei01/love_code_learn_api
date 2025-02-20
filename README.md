@@ -6,4 +6,4 @@ maintaining a clean architecture.
 
 Stay tuned for updates as new features and improvements are continuously being added!
 
-🔥 Built with Django & DRF  
+**🔥 Built with Django & DRF**  
