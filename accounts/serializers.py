@@ -3,6 +3,12 @@ from rest_framework.fields import empty
 from django.contrib.auth import password_validation
 from utils.validators import phone_regex
 from .models import Otp, User
+# other module
+from moviepy import VideoFileClip
+import tempfile
+import os
+# courses models
+from courses.models import Course, CourseHeadlines, SeasonVideos
 
 
 class OtpRequestSerializer(serializers.Serializer):
@@ -141,3 +147,121 @@ class ChangePhoneNumberSerializer(BaseOtpVerificationSerializer):
         user.save()
         self.otp_verification.delete()
         return user
+
+
+# --------------------------------------------teachers panel------------------------------------------------------
+# ------------------------------- course, headlines, video -----------------------------------------
+
+
+class CourseSerializer(serializers.ModelSerializer):
+    """
+     Serializer for creating a new course. It associates the course with the current teacher (user).
+    """
+
+    class Meta:
+        model = Course
+        fields = ['category', 'title', 'thumbnail', 'description', 'slug', 'price', 'off', 'status', 'is_free']
+        extra_kwargs = {
+            'price': {'required': True},
+        }
+
+    def create(self, validated_data):
+        teacher = self.context['request'].user
+        # set course teacher
+        course = Course.objects.create(teacher=teacher, **validated_data)
+        return course
+
+
+class HeadlineSerializer(serializers.ModelSerializer):
+    """
+    Serializer for creating a new headline for a course.
+    It ensures that the user is the teacher of the course before allowing the creation.
+    """
+
+    class Meta:
+        model = CourseHeadlines
+        fields = ['course', 'headline_title', 'chapter_number', 'is_active', 'duration']
+
+    def validate(self, data):
+        teacher = self.context['request'].user
+        course = data['course']
+
+        # checks authenticated user is the teacher of the course
+        if course.teacher != teacher:
+            raise serializers.ValidationError({'error : ': 'You are not the instructor of this course'})
+        return data
+
+
+class SeasonVideoSerializer(serializers.ModelSerializer):
+    """
+    Serializer for creating a new video in a course's season. It ensures that the user is the instructor
+    of the course associated with the headline, and also calculates the video's duration.
+    """
+
+    class Meta:
+        model = SeasonVideos
+        fields = ['headline', 'video_title', 'video_file', 'description', 'attached_file', 'duration']
+
+    def validate(self, data):
+        """
+        Validates that the authenticated user is the instructor of the course associated with the headline.
+        """
+        teacher = self.context['request'].user
+        headline = data['headline']
+
+        if headline.course.teacher != teacher:
+            raise serializers.ValidationError({'error : ': 'You are not the instructor of this course'})
+
+        return data
+
+    def create(self, validated_data):
+        """
+        Creates a new season video, calculates the video duration, and deletes the temporary video file.
+        """
+        return self._set_video_duration(validated_data)
+
+    def update(self, instance, validated_data):
+        """
+        Updates an existing season video, recalculates the video duration if the video file is changed.
+        """
+        video_file = validated_data.get('video_file', None)
+        if video_file:
+            validated_data['duration'] = self._calculate_video_duration(video_file)
+        return super().update(instance, validated_data)
+
+    def _set_video_duration(self, validated_data):
+        """
+        Sets the video duration during creation.
+        """
+        video_file = validated_data.get('video_file')
+        duration = 0
+
+        if video_file:
+            duration = self._calculate_video_duration(video_file)
+
+        # save video with calculated duration
+        season_video = SeasonVideos.objects.create(duration=duration, **validated_data)
+        return season_video
+
+    def _calculate_video_duration(self, video_file):
+        """
+        Calculates the duration of the video file and returns it.
+        """
+        duration = 0
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp_video:
+                temp_video.write(video_file.read())  # write file in temporary memory
+                temp_video_path = temp_video.name  # get the temporary file path
+
+            # calculate video duration
+            clip = VideoFileClip(temp_video_path)
+            duration = clip.duration
+            clip.close()
+            # delete file from temporary memory
+            os.remove(temp_video_path)
+
+            duration = round(duration / 60, 2)
+        except Exception as e:
+            print(f"Error processing video file: {e}")
+
+        return duration
