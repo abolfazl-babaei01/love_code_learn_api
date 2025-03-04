@@ -1,12 +1,11 @@
-from django.shortcuts import redirect
-from django.contrib.auth.decorators import login_required
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework import views, status, permissions, viewsets
 from rest_framework_simplejwt.tokens import RefreshToken
 # this app serializers
 from .serializers import OtpRequestSerializer, OtpVerificationSerializer, ResetPasswordSerializer, \
-    ChangePhoneNumberSerializer, CourseSerializer, HeadlineSerializer, SeasonVideoSerializer
+    ChangePhoneNumberSerializer, CourseSerializer, HeadlineSerializer, SeasonVideoSerializer, \
+    TeacherEditAccountSerializer, TeacherSocialAccountSerializer
 from .models import User
 # utils
 from utils.permissions import IsTeacher
@@ -113,6 +112,7 @@ class BaseViewSet(viewsets.ModelViewSet):
         instance.delete()
         return Response({'message': self.destroy_message}, status=status.HTTP_200_OK)
 
+
 class CourseViewSet(BaseViewSet):
     """
     ViewSet for managing courses. Supports creation, update, and retrieval of courses.
@@ -142,3 +142,27 @@ class SeasonVideoViewSet(BaseViewSet):
     """
     serializer_class = SeasonVideoSerializer
     queryset = SeasonVideos.objects.all()
+
+
+class TeacherEditAccountView(views.APIView):
+    serializer_class = TeacherEditAccountSerializer
+    permission_classes = [permissions.IsAuthenticated, IsTeacher]
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+class ChangeSocialAccountView(views.APIView):
+
+    serializer_class = TeacherSocialAccountSerializer
+    permission_classes = [permissions.IsAuthenticated, IsTeacher]
+
+
+    def post(self, request):
+
+        serializer = self.serializer_class(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)

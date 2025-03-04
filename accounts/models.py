@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from utils.validators import phone_regex
@@ -92,6 +93,15 @@ class TeacherSocialAccount(models.Model):
     def __str__(self):
         return self.name
 
+    def clean(self):
+        if not self.teacher.is_teacher():
+            raise ValidationError({'teacher': f'This account `{self.teacher}` is not a teacher'})
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
     class Meta:
-        verbose_name = 'Teacher'
-        verbose_name_plural = 'Teachers'
+        verbose_name = 'Teacher Social Account'
+        verbose_name_plural = 'Teachers Social Accounts'
+

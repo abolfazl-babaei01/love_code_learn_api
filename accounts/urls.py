@@ -17,6 +17,11 @@ urlpatterns = [
 
     path('reset-password/', views.ResetPasswordView.as_view(), name='reset_password'),
     path('change-phone-number/', views.ChangePhoneNumberView.as_view(), name='change_phone_number'),
+
+    # teacher account info
+
+    path('edit-account/', views.TeacherEditAccountView.as_view(), name='edit_account'),
+    path('change-social-account/', views.ChangeSocialAccountView.as_view(), name='change_social_account'),
 ]
 
 urlpatterns += router.urls

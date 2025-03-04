@@ -2,12 +2,12 @@ from rest_framework import serializers
 from rest_framework.fields import empty
 from django.contrib.auth import password_validation
 from utils.validators import phone_regex
-from .models import Otp, User
+from .models import Otp, User, TeacherSocialAccount
 # other module
 from moviepy import VideoFileClip
 import tempfile
 import os
-# courses models
+# courses module
 from courses.models import Course, CourseHeadlines, SeasonVideos
 
 
@@ -150,8 +150,6 @@ class ChangePhoneNumberSerializer(BaseOtpVerificationSerializer):
 
 
 # --------------------------------------------teachers panel------------------------------------------------------
-# ------------------------------- course, headlines, video -----------------------------------------
-
 
 class CourseSerializer(serializers.ModelSerializer):
     """
@@ -265,3 +263,19 @@ class SeasonVideoSerializer(serializers.ModelSerializer):
             print(f"Error processing video file: {e}")
 
         return duration
+
+
+class TeacherSocialAccountSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TeacherSocialAccount
+        fields = ['name', 'link']
+
+    def create(self, validated_data):
+        teacher = self.context['request'].user
+        return TeacherSocialAccount.objects.create(teacher=teacher, **validated_data)
+
+
+class TeacherEditAccountSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['avatar', 'username', 'first_name', 'last_name', 'bio']

@@ -1,7 +1,11 @@
 from django.contrib import admin
-from .models import User, Otp
+from .models import User, Otp, TeacherSocialAccount
 
 # Register your models here.
+
+@admin.register(TeacherSocialAccount)
+class TeacherSocialAccountAdmin(admin.ModelAdmin):
+    list_display = ['teacher', 'name', 'link']
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
