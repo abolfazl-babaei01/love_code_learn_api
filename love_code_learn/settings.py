@@ -38,12 +38,16 @@ INSTALLED_APPS = [
     # My Apss
     'courses.apps.CoursesConfig',
     'accounts.apps.AccountsConfig',
+    'cart.apps.CartConfig',
 
     # External Apps
     'django_cleanup',
 
     # RestFrameWork Apss
-    'rest_framework_simplejwt'
+    'rest_framework_simplejwt',
+
+    # schema
+    'drf_spectacular',
 
 ]
 
@@ -141,9 +145,20 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
+
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=7),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+}
+
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Love Code Learn',
+    'DESCRIPTION': 'This Project Provides Love Code Learn API 💙🍓',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    # OTHER SETTINGS
 }

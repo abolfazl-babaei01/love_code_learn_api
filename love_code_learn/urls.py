@@ -19,11 +19,25 @@ from django.urls import path, include
 from django.conf.urls.static import static
 from django.conf import settings
 
+# schema modules
+from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('accounts.urls', namespace='accounts')),
     path('courses/', include('courses.urls', namespace='courses')),
 
+    path('cart/', include('cart.urls', namespace='cart'))
+
+]
+
+# drf spectacular schema urls
+
+urlpatterns += [
+    path('schema/', SpectacularAPIView.as_view(), name='schema'),
+    # Optional UI:
+    path('schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('schema/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 ]
 
 if settings.DEBUG:
