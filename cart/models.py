@@ -11,8 +11,8 @@ class Cart(models.Model):
     This Model is used to store the cart
     """
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='cart')
+    is_paid = models.BooleanField(default=False)
     created = models.DateTimeField(auto_now_add=True)
-
     def is_empty(self):
         return not self.items.exists()
 

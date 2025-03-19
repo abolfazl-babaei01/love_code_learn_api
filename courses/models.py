@@ -2,13 +2,14 @@ from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from accounts.models import User
 from django.db.models import Sum
+
+
 # Create your models here.
 
 
 class Category(models.Model):
     name = models.CharField(max_length=155)
     slug = models.SlugField(max_length=155, unique=True)
-
 
     def __str__(self):
         return self.name
@@ -38,7 +39,6 @@ class Course(models.Model):
         published = ('published', 'Published')
         draft = ('draft', 'Draft')
         rejected = ('rejected', 'Rejected')
-
 
     # Category
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='courses')
@@ -75,7 +75,6 @@ class Course(models.Model):
 
     def __str__(self):
         return f'{self.title} - {self.teacher}'
-
 
     def save(self, *args, **kwargs):
 
@@ -115,12 +114,11 @@ class CourseHeadlines(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='headlines')
     headline_title = models.CharField(max_length=200)
     chapter_number = models.PositiveIntegerField()
-    duration = models.DecimalField(default=0, max_digits=6,  decimal_places=2)
+    duration = models.DecimalField(default=0, max_digits=6, decimal_places=2)
     is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return self.headline_title
-
 
     def update_duration(self):
         total_duration = SeasonVideos.objects.filter(headline=self).aggregate(
@@ -156,7 +154,6 @@ class SeasonVideos(models.Model):
     duration = models.DecimalField(default=0, max_digits=6, decimal_places=2)
     is_free = models.BooleanField(default=False)
 
-
     def save(self, *args, **kwargs):
         """
         Update the course duration when a new video is added or modified.
@@ -169,18 +166,23 @@ class SeasonVideos(models.Model):
         """
         Update the course duration when a video is deleted.
         """
-        # ذخیره اطلاعات قبل از حذف
         headline = self.headline
         course = headline.course
         headline.update_duration()
         course.update_duration()
-        # حذف شیء
         super().delete(*args, **kwargs)
-
-        # به‌روزرسانی مدت زمان بعد از حذف
-
-
-
 
     def __str__(self):
         return f'{self.headline} - {self.video_title}'
+
+
+class Enrollment(models.Model):
+    student = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'role': 'student'})
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    purchased_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('student', 'course')
+
+    def __str__(self):
+        return f"{self.student.phone_number} -> {self.course.title}"

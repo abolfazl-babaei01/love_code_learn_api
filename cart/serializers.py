@@ -1,13 +1,18 @@
 from rest_framework import serializers
 from .models import Cart, CartItem
 
-from courses.models import Course
-
+from courses.models import Course, Enrollment
+from order.models import Order, OrderItem
 
 class CartItemSerializer(serializers.ModelSerializer):
+    course = serializers.SerializerMethodField()
+
     class Meta:
         model = CartItem
         fields = ['course']
+
+    def get_course(self, obj):
+        return obj.course.title
 
 
 class CartSerializer(serializers.ModelSerializer):
@@ -16,11 +21,10 @@ class CartSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Cart
-        fields = ['user', 'items', 'cart_total_price']
+        fields = ['id', 'user', 'items', 'cart_total_price']
 
 
 class UpdateCartSerializer(serializers.Serializer):
-
     """
     Serializer for updating cart.
     Supported add and remove actions.
@@ -60,3 +64,46 @@ class UpdateCartSerializer(serializers.Serializer):
                 raise serializers.ValidationError({'message': 'Course not found in cart'})
 
         return cart
+
+
+class PurchaseCartSerializer(serializers.Serializer):
+    cart_id = serializers.IntegerField()
+
+    def validate_cart_id(self, cart_id):
+        user = self.context['request'].user
+        try:
+            cart = Cart.objects.get(id=cart_id, user=user)
+        except Cart.DoesNotExist:
+            raise serializers.ValidationError("cart does not exist")
+
+        if not cart.items.exists():
+            raise serializers.ValidationError("cart is empty")
+
+        return cart
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        cart = validated_data['cart_id']
+        # create order
+        order = Order.objects.create(student=user)
+
+
+        purchased_courses = []
+
+        # check and buy cart courses
+        for item in cart.items.all():
+            course = item.course
+            if not Enrollment.objects.filter(student=user, course=course).exists():
+                Enrollment.objects.create(student=user, course=course)
+                # add to order item
+                OrderItem.objects.create(order=order, course=item.course)
+                # append to list
+                purchased_courses.append(course)
+        # delete cart after buy
+        cart.delete()
+
+        # set True for order is_paid field
+        order.is_paid = True
+        order.save()
+
+        return {"purchased_courses": purchased_courses}

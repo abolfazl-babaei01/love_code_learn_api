@@ -39,11 +39,13 @@ INSTALLED_APPS = [
     'courses.apps.CoursesConfig',
     'accounts.apps.AccountsConfig',
     'cart.apps.CartConfig',
+    'order.apps.OrderConfig',
 
     # External Apps
     'django_cleanup',
 
     # RestFrameWork Apss
+    'rest_framework',
     'rest_framework_simplejwt',
 
     # schema
@@ -144,6 +146,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+
+    'DEFAULT_RENDERER_CLASSES':[
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
     ],
 
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
