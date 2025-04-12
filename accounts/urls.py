@@ -22,6 +22,9 @@ urlpatterns = [
 
     path('edit-account/', views.TeacherEditAccountView.as_view(), name='edit_account'),
     path('change-social-account/', views.ChangeSocialAccountView.as_view(), name='change_social_account'),
+
+    path('dashboard/student/', views.StudentDashboardView.as_view(), name='student-dashboard'),
+    path('dashboard/teacher/', views.TeacherDashboardView.as_view(), name='teacher-dashboard'),
 ]
 
 urlpatterns += router.urls

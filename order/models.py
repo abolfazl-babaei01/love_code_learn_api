@@ -31,7 +31,7 @@ class Order(models.Model):
         """
         Calculates the total cost of the order by summing the final prices of all items.
         """
-        total = sum(item.course.final_price for item in self.items.all())
+        total = sum(item.price for item in self.items.all())
         return total
 
 
@@ -42,6 +42,8 @@ class OrderItem(models.Model):
     """
     order = models.ForeignKey(Order, related_name='items', on_delete=models.CASCADE)
     course = models.ForeignKey(Course, related_name='orders', on_delete=models.CASCADE)
+    price = models.PositiveBigIntegerField()
+
 
     def __str__(self):
         return str(self.order)

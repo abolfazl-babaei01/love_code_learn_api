@@ -96,7 +96,7 @@ class PurchaseCartSerializer(serializers.Serializer):
             if not Enrollment.objects.filter(student=user, course=course).exists():
                 Enrollment.objects.create(student=user, course=course)
                 # add to order item
-                OrderItem.objects.create(order=order, course=item.course)
+                OrderItem.objects.create(order=order, course=item.course, price=item.course.final_price)
                 # append to list
                 purchased_courses.append(course)
         # delete cart after buy

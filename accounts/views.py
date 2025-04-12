@@ -1,18 +1,23 @@
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
-from rest_framework import views, status, permissions, viewsets
+from rest_framework import views, status, permissions, viewsets, generics
 from rest_framework_simplejwt.tokens import RefreshToken
+
 # this app serializers
 from .serializers import OtpRequestSerializer, OtpVerificationSerializer, ResetPasswordSerializer, \
     ChangePhoneNumberSerializer, CourseSerializer, HeadlineSerializer, SeasonVideoSerializer, \
-    TeacherEditAccountSerializer, TeacherSocialAccountSerializer
+    TeacherEditAccountSerializer, TeacherSocialAccountSerializer, EnrollmentSerializer, UserInfoSerializer
 from .models import User
 # utils
 from utils.permissions import IsTeacher
 
 # courses
-from courses.models import Course, CourseHeadlines, SeasonVideos
-from courses.serializers import CourseDetailSerializer
+from courses.models import Course, CourseHeadlines, SeasonVideos, Enrollment
+from courses.serializers import CourseDetailSerializer, CourseListSerializer
+
+# orders
+from order.models import Order
+from order.serializers import OrderListSerializer
 
 
 # Create your views here.
@@ -154,15 +159,47 @@ class TeacherEditAccountView(views.APIView):
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-class ChangeSocialAccountView(views.APIView):
 
+class ChangeSocialAccountView(views.APIView):
     serializer_class = TeacherSocialAccountSerializer
     permission_classes = [permissions.IsAuthenticated, IsTeacher]
 
-
     def post(self, request):
-
         serializer = self.serializer_class(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class StudentDashboardView(generics.RetrieveAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = UserInfoSerializer
+
+    def get(self, request, *args, **kwargs):
+        student = request.user
+        # user = User.objects.prefetch_related('enrollment_set').get(pk=student.id)
+        # print(user.enrollment_set.all())
+        enrollments = Enrollment.objects.filter(student=student)
+        orders = Order.objects.filter(student=student)
+
+        data = {
+            'user': self.get_serializer(student).data,
+            'enrollments': EnrollmentSerializer(enrollments, many=True, context={'request': request}).data,
+            'orders': OrderListSerializer(orders, many=True, context={'request': request}).data
+        }
+        return Response(data)
+
+
+class TeacherDashboardView(generics.RetrieveAPIView):
+    permission_classes = [permissions.IsAuthenticated, IsTeacher]
+    serializer_class = TeacherEditAccountSerializer
+
+    def get(self, request, *args, **kwargs):
+        teacher = request.user
+        courses = Course.objects.filter(teacher=teacher)
+
+        data = {
+            'user': self.get_serializer(teacher).data,
+            'courses': CourseListSerializer(courses, many=True, context={'request': request}).data
+        }
+        return Response(data)

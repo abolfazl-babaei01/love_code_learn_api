@@ -8,7 +8,7 @@ from moviepy import VideoFileClip
 import tempfile
 import os
 # courses module
-from courses.models import Course, CourseHeadlines, SeasonVideos
+from courses.models import Course, CourseHeadlines, SeasonVideos, Enrollment
 
 
 class OtpRequestSerializer(serializers.Serializer):
@@ -279,3 +279,30 @@ class TeacherEditAccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['avatar', 'username', 'first_name', 'last_name', 'bio']
+
+
+class TeacherProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['avatar', 'username', 'first_name', 'last_name', 'bio']
+
+
+# ---------------------------------- end teacher panel -------------------------------------------------------------
+
+class EnrollmentSerializer(serializers.ModelSerializer):
+    course = serializers.StringRelatedField()
+    student = serializers.StringRelatedField()
+    purchased_at = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Enrollment
+        fields = ['student', 'course', 'purchased_at']
+
+    def get_purchased_at(self, obj):
+        return obj.purchased_at.strftime('%m/%d/%Y %H:%M')
+
+
+class UserInfoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['avatar', 'username', 'first_name', 'last_name', 'bio', 'email']
