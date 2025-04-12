@@ -275,16 +275,11 @@ class TeacherSocialAccountSerializer(serializers.ModelSerializer):
         return TeacherSocialAccount.objects.create(teacher=teacher, **validated_data)
 
 
-class TeacherEditAccountSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['avatar', 'username', 'first_name', 'last_name', 'bio']
-
 
 class TeacherProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['avatar', 'username', 'first_name', 'last_name', 'bio']
+        fields = ['avatar', 'username', 'first_name', 'last_name', 'bio', 'email']
 
 
 # ---------------------------------- end teacher panel -------------------------------------------------------------

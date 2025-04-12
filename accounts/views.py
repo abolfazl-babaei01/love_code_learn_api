@@ -6,7 +6,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 # this app serializers
 from .serializers import OtpRequestSerializer, OtpVerificationSerializer, ResetPasswordSerializer, \
     ChangePhoneNumberSerializer, CourseSerializer, HeadlineSerializer, SeasonVideoSerializer, \
-    TeacherEditAccountSerializer, TeacherSocialAccountSerializer, EnrollmentSerializer, UserInfoSerializer
+    TeacherProfileSerializer, TeacherSocialAccountSerializer, EnrollmentSerializer, UserInfoSerializer
 from .models import User
 # utils
 from utils.permissions import IsTeacher
@@ -69,6 +69,7 @@ class ChangePhoneNumberView(views.APIView):
         serializer.save()
         return Response({'message': 'phone number change has been successfully'}, status=status.HTTP_200_OK)
 
+# - - - - - - - - - - - - - - - - - - - - - - Teacher views - - - - - - - - - - - - - - - - - - - - - - - - -
 
 class BaseViewSet(viewsets.ModelViewSet):
     """
@@ -149,8 +150,13 @@ class SeasonVideoViewSet(BaseViewSet):
     queryset = SeasonVideos.objects.all()
 
 
-class TeacherEditAccountView(views.APIView):
-    serializer_class = TeacherEditAccountSerializer
+
+class TeacherEditProfileView(views.APIView):
+    """
+    Handles editing teacher profile information.
+    """
+
+    serializer_class = TeacherProfileSerializer
     permission_classes = [permissions.IsAuthenticated, IsTeacher]
 
     def post(self, request):
@@ -161,6 +167,9 @@ class TeacherEditAccountView(views.APIView):
 
 
 class ChangeSocialAccountView(views.APIView):
+    """
+    Allows teachers to update their social media accounts.
+    """
     serializer_class = TeacherSocialAccountSerializer
     permission_classes = [permissions.IsAuthenticated, IsTeacher]
 
@@ -171,35 +180,53 @@ class ChangeSocialAccountView(views.APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class StudentDashboardView(generics.RetrieveAPIView):
+class TeacherCoursesListView(views.APIView):
+    """
+    Returns a list of courses created by the authenticated teacher.
+    """
+    permission_classes = [permissions.IsAuthenticated, IsTeacher]
+
+    def get(self, request):
+        courses = Course.objects.filter(teacher=request.user)
+        serializer = CourseListSerializer(courses, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - user views  - - - - - - - - - - - - - - - - - - - - - - - - - -
+class UserInfoView(views.APIView):
+    """
+    Returns basic information of the authenticated user.
+    """
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = UserInfoSerializer
 
     def get(self, request, *args, **kwargs):
-        student = request.user
-        # user = User.objects.prefetch_related('enrollment_set').get(pk=student.id)
-        # print(user.enrollment_set.all())
-        enrollments = Enrollment.objects.filter(student=student)
-        orders = Order.objects.filter(student=student)
-
-        data = {
-            'user': self.get_serializer(student).data,
-            'enrollments': EnrollmentSerializer(enrollments, many=True, context={'request': request}).data,
-            'orders': OrderListSerializer(orders, many=True, context={'request': request}).data
-        }
-        return Response(data)
+        user = User.objects.get(id=request.user.id)
+        serializer = self.serializer_class(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class TeacherDashboardView(generics.RetrieveAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsTeacher]
-    serializer_class = TeacherEditAccountSerializer
+class UserEnrollmentsView(views.APIView):
+    """
+    Retrieves a list of the user's course enrollments.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = EnrollmentSerializer
 
     def get(self, request, *args, **kwargs):
-        teacher = request.user
-        courses = Course.objects.filter(teacher=teacher)
+        enrollments = Enrollment.objects.filter(student_id=request.user.id)
+        serializer = self.serializer_class(enrollments, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
-        data = {
-            'user': self.get_serializer(teacher).data,
-            'courses': CourseListSerializer(courses, many=True, context={'request': request}).data
-        }
-        return Response(data)
+class UserOrdersView(views.APIView):
+    """
+    Fetches the list of orders made by the authenticated user.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = OrderListSerializer
+    def get(self, request, *args, **kwargs):
+        orders = Order.objects.filter(student_id=request.user.id)
+        serializer = self.serializer_class(orders, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
