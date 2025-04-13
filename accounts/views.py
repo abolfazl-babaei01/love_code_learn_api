@@ -1,13 +1,16 @@
+# django
+from django.shortcuts import get_object_or_404
+# rest framework
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
-from rest_framework import views, status, permissions, viewsets, generics
+from rest_framework import views, status, permissions, viewsets
 from rest_framework_simplejwt.tokens import RefreshToken
 
 # this app serializers
 from .serializers import OtpRequestSerializer, OtpVerificationSerializer, ResetPasswordSerializer, \
     ChangePhoneNumberSerializer, CourseSerializer, HeadlineSerializer, SeasonVideoSerializer, \
     TeacherProfileSerializer, TeacherSocialAccountSerializer, EnrollmentSerializer, UserInfoSerializer
-from .models import User
+from .models import User, TeacherSocialAccount
 # utils
 from utils.permissions import IsTeacher
 
@@ -68,6 +71,7 @@ class ChangePhoneNumberView(views.APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({'message': 'phone number change has been successfully'}, status=status.HTTP_200_OK)
+
 
 # - - - - - - - - - - - - - - - - - - - - - - Teacher views - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -150,34 +154,62 @@ class SeasonVideoViewSet(BaseViewSet):
     queryset = SeasonVideos.objects.all()
 
 
-
-class TeacherEditProfileView(views.APIView):
+class TeacherInfoView(views.APIView):
     """
-    Handles editing teacher profile information.
+    Retrieve or update the teacher's profile.
     """
-
     serializer_class = TeacherProfileSerializer
     permission_classes = [permissions.IsAuthenticated, IsTeacher]
 
-    def post(self, request):
-        serializer = self.serializer_class(data=request.data)
+    def get(self, request):
+        serializer = self.serializer_class(request.user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request):
+        serializer = self.serializer_class(instance=request.user, data=request.data, partial=True,
+                                           context={'request': request})
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class ChangeSocialAccountView(views.APIView):
+class TeacherSocialAccountViewSet(viewsets.ViewSet):
     """
-    Allows teachers to update their social media accounts.
+    Handles listing, retrieving, creating, updating, and deleting teacher's social accounts.
     """
-    serializer_class = TeacherSocialAccountSerializer
     permission_classes = [permissions.IsAuthenticated, IsTeacher]
 
-    def post(self, request):
-        serializer = self.serializer_class(data=request.data, context={'request': request})
+    def get_queryset(self):
+        return TeacherSocialAccount.objects.filter(teacher=self.request.user)
+
+    def list(self, request):
+        queryset = self.get_queryset()
+        serializer = TeacherSocialAccountSerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def retrieve(self, request, pk=None):
+        instance = get_object_or_404(self.get_queryset(), pk=pk)
+        serializer = TeacherSocialAccountSerializer(instance)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def create(self, request):
+        serializer = TeacherSocialAccountSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, pk=None):
+        instance = get_object_or_404(self.get_queryset(), pk=pk)
+        serializer = TeacherSocialAccountSerializer(instance, data=request.data, partial=True,
+                                                    context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save(teacher=request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def destroy(self, request, pk=None):
+        instance = get_object_or_404(self.get_queryset(), pk=pk)
+        instance.delete()
+        return Response({"message":"item deleted"},status=status.HTTP_204_NO_CONTENT)
 
 
 class TeacherCoursesListView(views.APIView):
@@ -192,19 +224,23 @@ class TeacherCoursesListView(views.APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-
-
 # - - - - - - - - - - - - - - - - - - - - - - - - user views  - - - - - - - - - - - - - - - - - - - - - - - - - -
 class UserInfoView(views.APIView):
     """
-    Returns basic information of the authenticated user.
+    Retrieve or update the student's profile.
     """
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = UserInfoSerializer
 
     def get(self, request, *args, **kwargs):
-        user = User.objects.get(id=request.user.id)
-        serializer = self.serializer_class(user)
+        serializer = self.serializer_class(request.user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request):
+        serializer = self.serializer_class(instance=request.user, data=request.data, partial=True,
+                                           context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -220,12 +256,14 @@ class UserEnrollmentsView(views.APIView):
         serializer = self.serializer_class(enrollments, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+
 class UserOrdersView(views.APIView):
     """
     Fetches the list of orders made by the authenticated user.
     """
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = OrderListSerializer
+
     def get(self, request, *args, **kwargs):
         orders = Order.objects.filter(student_id=request.user.id)
         serializer = self.serializer_class(orders, many=True, context={'request': request})

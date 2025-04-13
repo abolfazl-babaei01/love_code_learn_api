@@ -266,25 +266,42 @@ class SeasonVideoSerializer(serializers.ModelSerializer):
 
 
 class TeacherSocialAccountSerializer(serializers.ModelSerializer):
+    """
+    Serializer for creating and validating a teacher's social media account.
+    Automatically assigns the logged-in teacher as the owner of the account.
+    """
     class Meta:
         model = TeacherSocialAccount
-        fields = ['name', 'link']
+        fields = ['id', 'name', 'link']
 
     def create(self, validated_data):
         teacher = self.context['request'].user
         return TeacherSocialAccount.objects.create(teacher=teacher, **validated_data)
 
 
-
 class TeacherProfileSerializer(serializers.ModelSerializer):
+    """
+    Serializer for updating and validating teacher profile information.
+    Ensures email uniqueness across users except for the current user.
+    """
+
     class Meta:
         model = User
         fields = ['avatar', 'username', 'first_name', 'last_name', 'bio', 'email']
 
+    def validate_email(self, value):
+        user = self.context['request'].user
+        if User.objects.exclude(pk=user.pk).filter(email=value).exists():
+            raise serializers.ValidationError("This email is already taken.")
+        return value
 
 # ---------------------------------- end teacher panel -------------------------------------------------------------
 
 class EnrollmentSerializer(serializers.ModelSerializer):
+    """
+    Serializer for displaying enrollment details including course, student, and purchase time.
+    Formats the 'purchased_at' field for better readability.
+    """
     course = serializers.StringRelatedField()
     student = serializers.StringRelatedField()
     purchased_at = serializers.SerializerMethodField()
@@ -298,6 +315,16 @@ class EnrollmentSerializer(serializers.ModelSerializer):
 
 
 class UserInfoSerializer(serializers.ModelSerializer):
+    """
+    Serializer for displaying and validating user profile information.
+    Ensures the email is unique among users except for the current user.
+    """
     class Meta:
         model = User
         fields = ['avatar', 'username', 'first_name', 'last_name', 'bio', 'email']
+
+    def validate_email(self, value):
+        user = self.context['request'].user
+        if User.objects.exclude(pk=user.pk).filter(email=value).exists():
+            raise serializers.ValidationError("This email is already taken.")
+        return value

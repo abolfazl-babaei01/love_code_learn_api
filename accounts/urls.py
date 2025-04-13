@@ -4,10 +4,12 @@ from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
 
+# teacher router
 router.register(r'courses', views.CourseViewSet, basename='courses')
 router.register(r'headlines', views.HeadLineViewSet, basename='headlines')
 router.register(r'videos', views.SeasonVideoViewSet, basename='videos')
 
+router.register('teacher-social-accounts', views.TeacherSocialAccountViewSet, basename='teacher-social-accounts')
 
 app_name = 'accounts'
 
@@ -19,8 +21,8 @@ urlpatterns = [
     path('change-phone-number/', views.ChangePhoneNumberView.as_view(), name='change_phone_number'),
 
     # teacher dashboard
-    path('teacher/edit-profile/', views.TeacherEditProfileView.as_view(), name='edit_profile'),
-    path('teacher/social-media/', views.ChangeSocialAccountView.as_view(), name='change_social_account'),
+    path('teacher/info/', views.TeacherInfoView.as_view(), name='teacher_info'),
+
     path('teacher/courses/', views.TeacherCoursesListView.as_view(), name='teacher_courses'),
 
 
